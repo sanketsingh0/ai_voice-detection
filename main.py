@@ -6,7 +6,14 @@ import numpy as np
 import io
 import os
 
-app = FastAPI()
+app = FastAPI(
+    title="AI Voice Detection API",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+@app.get("/")
+def root():
+    return {"status": "API is running"}
 
 # ---- Read API KEY from Environment Variable ----
 API_KEY = os.getenv("API_KEY")
@@ -70,3 +77,4 @@ def detect_audio(
             status_code=400,
             detail="Audio processing failed"
         )
+
