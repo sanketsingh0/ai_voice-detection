@@ -14,6 +14,10 @@ app = FastAPI(
 @app.get("/")
 def root():
     return {"status": "API is running"}
+    @app.get("/routes")
+def routes():
+    return [{"path": r.path, "methods": list(r.methods)} for r in app.router.routes]
+
 
 # ---- Read API KEY from Environment Variable ----
 API_KEY = os.getenv("API_KEY")
@@ -77,4 +81,5 @@ def detect_audio(
             status_code=400,
             detail="Audio processing failed"
         )
+
 
