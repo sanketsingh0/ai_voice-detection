@@ -6,30 +6,28 @@ import numpy as np
 import io
 import os
 
+# ---------------- APP INIT ----------------
 app = FastAPI(
     title="AI Voice Detection API",
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# ---------------- ROOT ----------------
 @app.get("/")
 def root():
     return {"status": "API is running"}
-    @app.get("/routes")
-def routes():
-    return [{"path": r.path, "methods": list(r.methods)} for r in app.router.routes]
 
-
-# ---- Read API KEY from Environment Variable ----
+# ---------------- API KEY ----------------
 API_KEY = os.getenv("API_KEY")
 
-
-# ---- Request Model (MATCHES GUVI PORTAL) ----
+# ---------------- REQUEST MODEL ----------------
 class AudioInput(BaseModel):
     language: str
     audio_format: str
     audio_base64: str
 
-
+# ---------------- BASE64 SAFE DECODE ----------------
 def safe_b64decode(data: str) -> bytes:
     data = data.strip().replace("\n", "").replace(" ", "")
     padding = len(data) % 4
@@ -37,29 +35,29 @@ def safe_b64decode(data: str) -> bytes:
         data += "=" * (4 - padding)
     return base64.b64decode(data)
 
-
+# ---------------- MAIN ENDPOINT ----------------
 @app.post("/detect")
 def detect_audio(
     data: AudioInput,
     x_api_key: str = Header(None)
 ):
-    # ---- API KEY CHECK ----
+    # API KEY CHECK
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
     try:
-        # ---- Decode Audio ----
+        # Decode audio
         audio_bytes = safe_b64decode(data.audio_base64)
         audio_buffer = io.BytesIO(audio_bytes)
 
-        # ---- Load Audio ----
+        # Load audio
         y, sr = librosa.load(audio_buffer, sr=None)
 
-        # ---- Feature Extraction ----
+        # Feature extraction
         mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
         mfcc_std = float(np.std(mfcc))
 
-        # ---- Simple Detection Logic ----
+        # Simple detection logic
         if mfcc_std < 15:
             prediction = "AI_GENERATED"
             confidence = round(1 - (mfcc_std / 20), 2)
@@ -67,7 +65,6 @@ def detect_audio(
             prediction = "HUMAN"
             confidence = round(min(mfcc_std / 40, 1.0), 2)
 
-        # ---- REQUIRED RESPONSE ----
         return {
             "prediction": prediction,
             "confidence": confidence,
@@ -81,5 +78,3 @@ def detect_audio(
             status_code=400,
             detail="Audio processing failed"
         )
-
-
